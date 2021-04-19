@@ -1,5 +1,6 @@
 package me.pgb.a2021_03_17_radio;
 
+
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -8,6 +9,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 
+import me.pgb.a2021_03_17_radio.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -22,63 +24,74 @@ import android.view.View;
 
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
     private final String TAG = "MAIN__";
     private MediaPlayer mediaPlayer;
     private static final String url = "http://stream.whus.org:8000/whusfm"; //";//http://vprbbc.streamguys.net:80/vprbbc24.mp3";
     private Button internetRadioButton;
-    private boolean radioOn;
-    private boolean radioWasOnBefore;
+    private Button playButton;
+    private Button pauseButton;
+    private boolean bRadioOn;
+    private Spinner RadioSpinner;
+    private ArrayList<String> radioStations = new ArrayList<String>();
+    private String currentStation;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        radioStations.add("http://fm939.wnyc.org/wnycfm");
+        radioStations.add("http://s2.voscast.com:9760/;");
+        radioStations.add("http://s9.voscast.com:7024;");
 
-        radioOn = false;
-        radioWasOnBefore = false;
+        RadioSpinner = findViewById(R.id.radioStations);
+        RadioSpinner.setOnItemSelectedListener(this);
+
+        ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_spinner_item,radioStations);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        RadioSpinner.setAdapter(adapter);
 
         mediaPlayer = new MediaPlayer();
+        playButton = findViewById(R.id.play);
+        pauseButton = findViewById(R.id.pause);
 
-        internetRadioButton = findViewById(R.id.internet_radio_button);
-
-        internetRadioButton.setOnClickListener(new View.OnClickListener() {
+        playButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-
-                if (radioOn) { // ON so Turn OFF
-                    radioOn = false;
-                    internetRadioButton.setText("Turn radio ON");
-                    if (mediaPlayer.isPlaying()) {
-                        Log.i(TAG, "Radio is playing- turning off " );
-                        radioWasOnBefore = true;
-                    }
-                    mediaPlayer.pause();
-                } else { // OFF so Turn ON
-                    radioOn = true;
-                    internetRadioButton.setText("Turn radio OFF");
-                    if (!mediaPlayer.isPlaying()) {
-                        if (radioWasOnBefore) {
-                            mediaPlayer.release();
-                            mediaPlayer = new MediaPlayer();
-                        }
-                        radioSetup(mediaPlayer);
-                        mediaPlayer.prepareAsync();
-                    }
+            public void onClick(View v) {
+                if(bRadioOn == false) {
+                    mediaPlayer = new MediaPlayer();
+                    radioSetup(mediaPlayer, radioStations.get(0));
+                    mediaPlayer.prepareAsync();
+                    bRadioOn = true;
                 }
-
             }
         });
+
+        pauseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+
+                mediaPlayer.release();
+                bRadioOn = false;
+            }
+        });
+
     }
 
-    public void radioSetup(MediaPlayer mediaPlayer) {
+    public void radioSetup(MediaPlayer mediaPlayer, String url) {
 
         mediaPlayer.setAudioAttributes(
                 new AudioAttributes.Builder()
@@ -128,28 +141,6 @@ public class MainActivity extends AppCompatActivity {
         mediaPlayer = null;
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
     private void setUpMediaPlayer() {
         Handler handler = null;
 
@@ -160,6 +151,27 @@ public class MainActivity extends AppCompatActivity {
 
             }
         };
+
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        if(parent.getId() == R.id.radioStations)
+        {
+            if (bRadioOn == true) {
+                mediaPlayer.release();
+                String selectedStation = parent.getItemAtPosition(position).toString();
+
+                mediaPlayer = new MediaPlayer();
+                radioSetup(mediaPlayer, selectedStation);
+                mediaPlayer.prepareAsync();
+            }
+
+        }
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
 
     }
 }
